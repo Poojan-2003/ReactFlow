@@ -1,7 +1,7 @@
 import React from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import Flow from "./Flow"; // Import your Flow component
-import ConditionalFlow from "./ConditionalFlow";
+import ConditionalFlow from "./ConditionalFlow.tsx";
 const App = () => {
   return (
     <ReactFlowProvider>

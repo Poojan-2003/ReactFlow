@@ -6,11 +6,28 @@ import {
   Handle,
   Position,
   applyNodeChanges,
-  applyEdgeChanges
+  applyEdgeChanges,
+  Node,
+  Edge,
+  Connection,
+  OnNodesChange,
+  OnEdgesChange
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-const InputNode = ({ id, data, onChange }) => {
+interface NodeData {
+  label: string;
+  inputValue?: string;
+  result?: string;
+}
+
+interface InputNodeProps {
+  id: string;
+  data: NodeData;
+  onChange: (id: string, value: string) => void;
+}
+
+const InputNode: React.FC<InputNodeProps> = ({ id, data, onChange }) => {
   return (
     <div style={{ padding: 10, border: "2px solid black", borderRadius: 5, textAlign: "center" }}>
       {data.label}
@@ -27,7 +44,7 @@ const InputNode = ({ id, data, onChange }) => {
   );
 };
 
-const ConditionalNode = ({ data }) => {
+const ConditionalNode: React.FC<{ data: NodeData }> = ({ data }) => {
   return (
     <div
       style={{
@@ -50,7 +67,7 @@ const ConditionalNode = ({ data }) => {
   );
 };
 
-const ProcessNode = ({ data }) => {
+const ProcessNode: React.FC<{ data: NodeData }> = ({ data }) => {
   return (
     <div style={{ padding: 10, border: "2px solid black", borderRadius: 5, textAlign: "center" }}>
       <p>Result: {data.result}</p>
@@ -59,7 +76,7 @@ const ProcessNode = ({ data }) => {
   );
 };
 
-const initialNodes = [
+const initialNodes: Node[] = [
   { id: "1", position: { x: 250, y: 50 }, data: { label: "Start" }, type: "default" },
   { id: "2", position: { x: 250, y: 150 }, data: { label: "Enter Number", inputValue: "" }, type: "inputNode" },
   { id: "3", position: { x: 200, y: 350 }, data: { label: "Multiply by 2", result: "" }, type: "processNode" },
@@ -67,7 +84,7 @@ const initialNodes = [
   { id: "5", position: { x: 300, y: 250 }, data: { label: "Check Even/Odd" }, type: "conditionalNode" },
 ];
 
-const initialEdges = [
+const initialEdges: Edge[] = [
   { id: "e1-2", source: "1", target: "2" },
   { id: "e2-5", source: "2", target: "5" },
   { id: "e5-3", source: "5", target: "3", label: "Even" },
@@ -76,31 +93,36 @@ const initialEdges = [
 
 const LOCAL_STORAGE_KEY = "savedFlow";
 
-const ConditionalFlow = () => {
-    useEffect(() => {
-        const savedFlow = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (savedFlow) {
-          const { nodes, edges } = JSON.parse(savedFlow);
-          setNodes(nodes);
-          setEdges(edges);
-        }
-      }, []);
-    const saveFlow = () => {
-        const flow = JSON.stringify({ nodes, edges });
-        // localStorage.setItem(LOCAL_STORAGE_KEY, flow);
-        // alert("Flow saved successfully!");
-      };
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+const ConditionalFlow: React.FC = () => {
+  const [nodes, setNodes] = useState<Node[]>(initialNodes);
+  const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
-  const updateNodeInput = (id, value) => {
+  useEffect(() => {
+    const savedFlow = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedFlow) {
+      const { nodes, edges } = JSON.parse(savedFlow);
+      setNodes(nodes);
+      setEdges(edges);
+    }
+  }, []);
+
+  const saveFlow = () => {
+    const flow = JSON.stringify({ nodes, edges });
+    localStorage.setItem(LOCAL_STORAGE_KEY, flow);
+  };
+
+  const updateNodeInput = (id: string, value: string) => {
     setNodes((nds) =>
-      nds.map((node) => (node.id === id ? { ...node, data: { ...node.data, inputValue: value } } : node))
+      nds.map((node) =>
+        node.id === id ? { ...node, data: { ...node.data, inputValue: value } } : node
+      )
     );
   };
 
   const executeFlow = () => {
     const node2 = nodes.find((n) => n.id === "2");
+    if (!node2) return;
+    
     const num = Number(node2.data.inputValue);
     if (isNaN(num)) return alert("Enter a valid number!");
 
@@ -109,8 +131,8 @@ const ConditionalFlow = () => {
 
     setNodes((nds) =>
       nds.map((node) => {
-        if (node.id === "3" && isEven) return { ...node, data: { ...node.data, result: "Even number" } };
-        if (node.id === "4" && !isEven) return { ...node, data: { ...node.data, result: "Odd Number"} };
+        if (node.id === "3" && isEven) return { ...node, data: { ...node.data, result: `Even: ${num * 2}` } };
+        if (node.id === "4" && !isEven) return { ...node, data: { ...node.data, result: `Odd: ${num * 3}` } };
         return node;
       })
     );
@@ -130,7 +152,7 @@ const ConditionalFlow = () => {
           edges={edges}
           onNodesChange={(changes) => setNodes((nds) => applyNodeChanges(changes, nds))}
           onEdgesChange={(changes) => setEdges((eds) => applyEdgeChanges(changes, eds))}
-          onConnect={(connection) => setEdges((eds) => addEdge(connection, eds))}
+          onConnect={(connection: Connection) => setEdges((eds) => addEdge(connection, eds))}
           nodeTypes={{
             inputNode: (props) => <InputNode {...props} onChange={updateNodeInput} />,
             conditionalNode: ConditionalNode,
